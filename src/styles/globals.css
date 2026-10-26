@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Domine:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-ink font-sans text-bone antialiased;
+  }
+
+  ::selection {
+    @apply bg-brass text-ink;
+  }
+
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-brass;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-label text-brass;
+  }
+}
