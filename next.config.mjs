@@ -1,5 +1,5 @@
 const isGithubActions = process.env.GITHUB_ACTIONS === "true";
-const repoName = "booking-tattoos";
+const repoName = "cd_tattoo";
 const basePath = isGithubActions ? `/${repoName}` : "";
 
 /** @type {import("next").NextConfig} */
@@ -19,7 +19,7 @@ const config = {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
 
-  // Required for GitHub Project Pages at username.github.io/booking-tattoos/
+  // Required for GitHub Project Pages at username.github.io/cd_tattoo/
   basePath,
   assetPrefix: isGithubActions ? `/${repoName}/` : "",
 };

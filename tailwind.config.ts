@@ -1,8 +1,7 @@
 import { type Config } from "tailwindcss";
 
 // Must match `basePath` in next.config.mjs.
-const basePath =
-  process.env.GITHUB_ACTIONS === "true" ? "/booking-tattoos" : "";
+const basePath = process.env.GITHUB_ACTIONS === "true" ? "/cd_tattoo" : "";
 
 export default {
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
