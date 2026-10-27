@@ -45,6 +45,12 @@ const Home = () => {
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link
+              href="/client"
+              className="inline-flex items-center justify-center bg-bone px-7 py-4 text-xs font-semibold uppercase tracking-label text-ink transition hover:bg-brass"
+            >
+              Client 
+            </Link>
+            <Link
               href="/book"
               className="inline-flex items-center justify-center bg-bone px-7 py-4 text-xs font-semibold uppercase tracking-label text-ink transition hover:bg-brass"
             >
@@ -107,7 +113,7 @@ const Home = () => {
             href="/book"
             className="inline-flex items-center justify-center bg-bone px-7 py-4 text-xs font-semibold uppercase tracking-label text-ink transition hover:bg-brass"
           >
-            Book a consultation
+            Book an appointment
           </Link>
           {/* <a
             href={`mailto:${site.email}`}

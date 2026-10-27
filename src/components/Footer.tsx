@@ -6,8 +6,8 @@ const Footer = () => {
 
   return (
     <footer className="border-t border-white/10 bg-ink">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs uppercase tracking-label text-bone/60">
+      <div className="  max-w-6xl flex-col gap-8 px-5 py-10 ">
+        <div className="flex justify-center gap-x-8 gap-y-3 text-xs uppercase tracking-label text-bone/60">
           <a
             href={site.instagram}
             target="_blank"
