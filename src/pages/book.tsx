@@ -1,6 +1,10 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import SiteLayout from "@/components/SiteLayout";
 import { site } from "@/lib/site";
+
+/** Keep in sync with the attachment limit of the configured form service. */
+const MAX_IMAGE_SIZE_MB = 5;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 const tattooLocations = [
   "Arm (Upper)",
@@ -32,11 +36,22 @@ const timeSlots = [
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^[+()\-\s\d]{7,20}$/;
 
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const Book = () => {
   const [status, setStatus] = useState<
     "idle" | "submitting" | "success" | "error"
   >("idle");
   const [error, setError] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<string>("");
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -46,6 +61,55 @@ const Book = () => {
     description: "",
     imageUrl: "",
   });
+
+  const hasImage = Boolean(formData.imageUrl.trim() || imageFile);
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreview("");
+      return;
+    }
+
+    const url = URL.createObjectURL(imageFile);
+    setImagePreview(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError("");
+
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      setImageFile(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setImageFile(null);
+      e.target.value = "";
+      setImageError("Please choose an image file.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setImageFile(null);
+      e.target.value = "";
+      setImageError(`Image must be ${MAX_IMAGE_SIZE_MB} MB or smaller.`);
+      return;
+    }
+
+    setImageFile(file);
+  };
+
+  const clearImageFile = () => {
+    setImageFile(null);
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -80,10 +144,15 @@ const Book = () => {
       setError("Please select a preferred time slot.");
       return;
     }
-    const hasImage = Boolean(formData.imageUrl.trim());
     if (!hasImage && !formData.description.trim()) {
       setError(
         "Please provide either an image upload/link or a short description of your tattoo idea."
+      );
+      return;
+    }
+    if (imageFile && !site.booking.formEndpoint) {
+      setError(
+        "Image uploads aren't available right now. Please paste an image link instead."
       );
       return;
     }
@@ -97,19 +166,36 @@ const Book = () => {
       tattooLocation: formData.tattooLocation,
       timeSlot: formData.timeSlot,
       description: formData.description.trim() || "No description provided",
-      imageUrl: formData.imageUrl.trim() || "No image provided",
+      imageUrl:
+        formData.imageUrl.trim() ||
+        (imageFile ? "Uploaded file attached" : "No image provided"),
+      imageFileName: imageFile?.name || "No file attached",
       subject: `Tattoo Consultation Request - ${formData.name.trim()}`,
     };
 
     try {
       if (site.booking.formEndpoint) {
+        const headers: Record<string, string> = {
+          Accept: "application/json",
+        };
+        let body: BodyInit;
+
+        if (imageFile) {
+          const data = new FormData();
+          Object.entries(payload).forEach(([key, value]) => {
+            data.append(key, value);
+          });
+          data.append("attachment", imageFile, imageFile.name);
+          body = data;
+        } else {
+          headers["Content-Type"] = "application/json";
+          body = JSON.stringify(payload);
+        }
+
         const res = await fetch(site.booking.formEndpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(payload),
+          headers,
+          body,
         });
         if (!res.ok) {
           throw new Error("Failed to submit request");
@@ -167,34 +253,12 @@ const Book = () => {
       <section className="mx-auto max-w-6xl px-5 py-16 sm:py-24">
         <header className="max-w-2xl">
           <p className="eyebrow">Booking</p>
-          <h1 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
-            Request a consultation
-          </h1>
-          <p className="mt-5 leading-relaxed text-bone/60">
-            text copy placeholder
-          </p>
         </header>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_1.75fr]">
-          <aside className="space-y-7">
-            <div>
-              <h2 className="font-display text-lg text-bone">How it works</h2>
-              <p className="mt-2 text-sm leading-relaxed text-bone/50">
-                text copy placeholder
-              </p>
-            </div>
-            <div>
-              <h2 className="font-display text-lg text-bone">
-                Approval required
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-bone/50">
-                text copy placeholder
-              </p>
-            </div>
-          </aside>
-
           <form
             onSubmit={handleSubmit}
+            encType="multipart/form-data"
             className="space-y-6 border border-white/10 bg-white/[0.02] p-6 sm:p-8"
             noValidate
           >
@@ -330,6 +394,60 @@ const Book = () => {
                 className="mt-2 w-full border border-white/10 bg-transparent px-4 py-3 text-sm text-bone placeholder:text-bone/30 focus:border-brass focus:outline-none"
                 placeholder="https://... (link to reference image)"
               />
+
+              <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-label text-bone/30">
+                <span className="h-px flex-1 bg-white/10" />
+                or upload from your device
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <input
+                ref={fileInputRef}
+                id="imageFile"
+                name="imageFile"
+                type="file"
+                accept="image/*"
+                aria-label="Upload a reference image from your device"
+                aria-describedby="imageFileHelp"
+                onChange={handleFileChange}
+                className="block w-full cursor-pointer text-sm text-bone/50 file:mr-4 file:cursor-pointer file:border file:border-bone/30 file:bg-transparent file:px-4 file:py-2.5 file:text-xs file:font-semibold file:uppercase file:tracking-label file:text-bone hover:file:border-bone hover:file:bg-bone/5"
+              />
+              <p id="imageFileHelp" className="mt-2 text-xs text-bone/40">
+                One image max, {MAX_IMAGE_SIZE_MB} MB or smaller. JPG, PNG,
+                WEBP, etc.
+              </p>
+              {imageError && (
+                <p role="alert" className="mt-2 text-xs text-brass">
+                  {imageError}
+                </p>
+              )}
+
+              {imageFile && (
+                <div className="mt-4 flex items-center gap-3 border border-white/10 bg-white/[0.02] p-3">
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="Selected reference preview"
+                      className="h-16 w-16 object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-bone">
+                      {imageFile.name}
+                    </p>
+                    <p className="text-xs text-bone/40">
+                      {formatFileSize(imageFile.size)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearImageFile}
+                    className="text-xs uppercase tracking-label text-bone/50 transition hover:text-brass"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -338,10 +456,8 @@ const Book = () => {
                 className="text-xs uppercase tracking-label text-bone/60"
               >
                 Tattoo Idea Description{" "}
-                {!formData.imageUrl.trim() && (
-                  <span className="text-brass">*</span>
-                )}
-                {formData.imageUrl.trim() && (
+                {!hasImage && <span className="text-brass">*</span>}
+                {hasImage && (
                   <span className="text-bone/40">
                     (optional if image provided)
                   </span>
