@@ -22,15 +22,6 @@ export default {
       letterSpacing: {
         label: "0.28em",
       },
-      keyframes: {
-        marquee: {
-          from: { transform: "translateX(0)" },
-          to: { transform: "translateX(-25%)" },
-        },
-      },
-      animation: {
-        marquee: "marquee 45s linear infinite",
-      },
       maxWidth: {
         prose: "68ch",
       },
